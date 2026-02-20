@@ -12,7 +12,7 @@ const LoanDetailPage = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
-  const [loanData, setLoanData] = useState(null)
+  const [loan, setLoan] = useState(null)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
 
@@ -25,7 +25,8 @@ const LoanDetailPage = () => {
     try {
       const response = await getLoanDetail(loanId)
       if (response.success) {
-        setLoanData(response.data)
+        // Backend: response.data = { loan: { ...loanFields, user: { populated } } }
+        setLoan(response.data?.loan || response.data)
       } else {
         toast.error('Зээлийн мэдээлэл олдсонгүй')
         navigate('/loans')
@@ -39,13 +40,12 @@ const LoanDetailPage = () => {
   }
 
   const handleApprove = async () => {
-    if (!confirm('Та энэ зээлийг зөвшөөрөх гэж байна уу?')) return
-
+    if (!confirm('Та энэ зээлийг зөвшөөрөх гэж байна уу? Хэтэвчинд мөнгө орно.')) return
     setActionLoading(true)
     try {
       const response = await approveLoan(loanId)
       if (response.success) {
-        toast.success('Зээл амжилттай зөвшөөрөгдлөө')
+        toast.success('Зээл амжилттай зөвшөөрөгдлөө ✅')
         navigate('/loans')
       } else {
         toast.error(response.message || 'Алдаа гарлаа')
@@ -62,7 +62,6 @@ const LoanDetailPage = () => {
       toast.error('Татгалзах шалтгаан оруулна уу')
       return
     }
-
     setActionLoading(true)
     try {
       const response = await rejectLoan(loanId, rejectReason)
@@ -88,117 +87,163 @@ const LoanDetailPage = () => {
     )
   }
 
-  if (!loanData) {
-    return <div className="text-center py-12">Зээлийн мэдээлэл олдсонгүй</div>
+  if (!loan) {
+    return <div className="text-center py-12 text-gray-500">Зээлийн мэдээлэл олдсонгүй</div>
   }
+
+  const user = loan.user || {}
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/loans')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
+          <button onClick={() => navigate('/loans')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <FiArrowLeft className="w-5 h-5" />
           </button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Зээлийн Дэлгэрэнгүй</h1>
-            <p className="text-gray-600 mt-1">Зээлийн ID: {loanId}</p>
+            <p className="text-gray-600 mt-1 font-mono text-sm">{loan.loanNumber}</p>
           </div>
         </div>
 
-        {loanData.status === 'pending' && (
+        {loan.status === 'pending' && (
           <div className="flex gap-3">
-            <Button
-              variant="danger"
-              onClick={() => setShowRejectModal(true)}
-              disabled={actionLoading}
-            >
-              <FiX className="mr-2" />
-              Татгалзах
+            <Button variant="danger" onClick={() => setShowRejectModal(true)} disabled={actionLoading}>
+              <FiX className="mr-2" /> Татгалзах
             </Button>
-            <Button
-              variant="success"
-              onClick={handleApprove}
-              loading={actionLoading}
-            >
-              <FiCheck className="mr-2" />
-              Зөвшөөрөх
+            <Button variant="success" onClick={handleApprove} loading={actionLoading}>
+              <FiCheck className="mr-2" /> Зөвшөөрөх
             </Button>
           </div>
         )}
       </div>
 
-      {/* Loan Info */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Loan Info */}
         <Card title="Зээлийн мэдээлэл">
           <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-600">Зээлийн дүн</p>
-              <p className="text-2xl font-bold text-gray-900">{formatMoney(loanData.amount)}₮</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 uppercase mb-1">Зээлийн дүн</p>
+                <p className="text-2xl font-bold text-gray-900">{formatMoney(loan.principal)}₮</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase mb-1">Нийт төлөх</p>
+                <p className="text-2xl font-bold text-orange-600">{formatMoney(loan.totalAmount)}₮</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase mb-1">Хугацаа</p>
+                <p className="text-lg font-semibold text-gray-900">{loan.term} хоног</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase mb-1">Хүүний хувь</p>
+                <p className="text-lg font-semibold text-gray-900">{loan.interestRate}% ({formatMoney(loan.interestAmount)}₮)</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase mb-1">Зориулалт</p>
+                <p className="text-lg font-semibold text-gray-900">{loan.purpose || 'Хувийн'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase mb-1">Төлөв</p>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(loan.status)}`}>
+                  {getStatusText(loan.status)}
+                </span>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Хугацаа</p>
-              <p className="text-lg font-medium text-gray-900">{loanData.duration} сар</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Хүү</p>
-              <p className="text-lg font-medium text-gray-900">{loanData.interest_rate}%</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Төлөв</p>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(loanData.status)}`}>
-                {getStatusText(loanData.status)}
-              </span>
-            </div>
+
+            {loan.status === 'active' || loan.status === 'extended' || loan.status === 'overdue' ? (
+              <div className="bg-gray-50 rounded-lg p-3 mt-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Төлсөн дүн</p>
+                    <p className="font-semibold text-green-600">{formatMoney(loan.paidAmount)}₮</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Үлдэгдэл</p>
+                    <p className="font-semibold text-red-600">{formatMoney(loan.remainingAmount)}₮</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Дуусах огноо</p>
+                    <p className="font-semibold text-gray-900">{formatDateTime(loan.dueDate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Сунгасан тоо</p>
+                    <p className="font-semibold text-gray-900">{loan.extensionCount || 0} удаа</p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {loan.status === 'rejected' && loan.rejectedReason && (
+              <div className="bg-red-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500 mb-1">Татгалзсан шалтгаан</p>
+                <p className="text-red-700 font-medium">{loan.rejectedReason}</p>
+              </div>
+            )}
           </div>
         </Card>
 
+        {/* User Info */}
         <Card title="Хэрэглэгчийн мэдээлэл">
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-gray-600">Нэр</p>
-              <p className="text-lg font-medium text-gray-900">
-                {loanData.first_name} {loanData.last_name}
+              <p className="text-xs text-gray-500 uppercase mb-1">Нэр</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {user.personalInfo?.lastName} {user.personalInfo?.firstName || user.name}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Утас</p>
-              <p className="text-lg font-medium text-gray-900">{loanData.phone}</p>
+              <p className="text-xs text-gray-500 uppercase mb-1">Утас</p>
+              <p className="text-lg font-semibold text-gray-900">{user.phoneNumber}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Email</p>
-              <p className="text-lg font-medium text-gray-900">{loanData.email}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">KYC Төлөв</p>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(loanData.kyc_status)}`}>
-                {getStatusText(loanData.kyc_status)}
+              <p className="text-xs text-gray-500 uppercase mb-1">KYC Төлөв</p>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(user.kycStatus)}`}>
+                {getStatusText(user.kycStatus)}
               </span>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase mb-1">Зээлийн эрх</p>
+              <p className="text-lg font-semibold text-gray-900">{formatMoney(user.creditLimit || 0)}₮</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase mb-1">Кредит оноо</p>
+              <p className="text-lg font-semibold text-gray-900">{user.creditScore || 0} оноо</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase mb-1">Банк / Данс</p>
+              <p className="text-sm text-gray-900">
+                {user.personalInfo?.bankInfo?.bankName || '-'} / {user.personalInfo?.bankInfo?.accountNumber || '-'}
+              </p>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Additional Info */}
-      <Card title="Нэмэлт мэдээлэл">
-        <div className="grid grid-cols-2 gap-6">
+      {/* Timestamps */}
+      <Card title="Огноо мэдээлэл">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <p className="text-sm text-gray-600">Хүсэлт илгээсэн</p>
-            <p className="text-lg font-medium text-gray-900">{formatDateTime(loanData.created_at)}</p>
+            <p className="text-xs text-gray-500 uppercase mb-1">Хүсэлт илгээсэн</p>
+            <p className="font-medium text-gray-900 text-sm">{formatDateTime(loan.createdAt)}</p>
           </div>
-          {loanData.approved_at && (
+          {loan.approvedAt && (
             <div>
-              <p className="text-sm text-gray-600">Зөвшөөрөгдсөн</p>
-              <p className="text-lg font-medium text-gray-900">{formatDateTime(loanData.approved_at)}</p>
+              <p className="text-xs text-gray-500 uppercase mb-1">Зөвшөөрөгдсөн</p>
+              <p className="font-medium text-gray-900 text-sm">{formatDateTime(loan.approvedAt)}</p>
             </div>
           )}
-          {loanData.reason && (
-            <div className="col-span-2">
-              <p className="text-sm text-gray-600">Шалтгаан</p>
-              <p className="text-lg font-medium text-gray-900">{loanData.reason}</p>
+          {loan.disbursedAt && (
+            <div>
+              <p className="text-xs text-gray-500 uppercase mb-1">Мөнгө олгосон</p>
+              <p className="font-medium text-gray-900 text-sm">{formatDateTime(loan.disbursedAt)}</p>
+            </div>
+          )}
+          {loan.dueDate && (
+            <div>
+              <p className="text-xs text-gray-500 uppercase mb-1">Дуусах огноо</p>
+              <p className="font-medium text-gray-900 text-sm">{formatDateTime(loan.dueDate)}</p>
             </div>
           )}
         </div>
@@ -207,29 +252,20 @@ const LoanDetailPage = () => {
       {/* Reject Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Зээл Татгалзах</h3>
             <p className="text-gray-600 mb-4">Татгалзах шалтгааныг оруулна уу:</p>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg p-3 min-h-[120px] focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Жишээ: Орлого хангалтгүй"
+              className="w-full border border-gray-300 rounded-lg p-3 min-h-[120px] focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="Жишээ: Орлого хангалтгүй, KYC баталгаажаагүй"
             />
             <div className="flex gap-3 mt-4">
-              <Button
-                variant="secondary"
-                onClick={() => setShowRejectModal(false)}
-                className="flex-1"
-              >
+              <Button variant="secondary" onClick={() => setShowRejectModal(false)} className="flex-1">
                 Болих
               </Button>
-              <Button
-                variant="danger"
-                onClick={handleReject}
-                loading={actionLoading}
-                className="flex-1"
-              >
+              <Button variant="danger" onClick={handleReject} loading={actionLoading} className="flex-1">
                 Татгалзах
               </Button>
             </div>

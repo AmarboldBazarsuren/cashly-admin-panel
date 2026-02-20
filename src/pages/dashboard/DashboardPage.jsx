@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { FiUsers, FiFileText, FiDollarSign, FiTrendingUp } from 'react-icons/fi'
+import { FiUsers, FiFileText, FiDollarSign, FiTrendingUp, FiCreditCard, FiAlertCircle } from 'react-icons/fi'
 import { getDashboardStats } from '../../services/dashboardService'
 import Card from '../../components/common/Card'
 import { formatMoney } from '../../utils/formatters'
@@ -18,6 +18,7 @@ const DashboardPage = () => {
     try {
       const response = await getDashboardStats()
       if (response.success) {
+        // Backend: response.data = { users, kyc, loans, loanAmounts, withdrawals, wallet, today }
         setStats(response.data)
       }
     } catch (error) {
@@ -37,7 +38,7 @@ const DashboardPage = () => {
 
   const StatCard = ({ icon: Icon, title, value, subtitle, color, link }) => (
     <Link to={link}>
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer p-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-600 mb-1">{title}</p>
@@ -48,7 +49,7 @@ const DashboardPage = () => {
             <Icon className="w-8 h-8 text-white" />
           </div>
         </div>
-      </Card>
+      </div>
     </Link>
   )
 
@@ -61,94 +62,94 @@ const DashboardPage = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard
           icon={FiUsers}
           title="Нийт хэрэглэгч"
-          value={stats?.totalUsers || 0}
-          subtitle={`Идэвхтэй: ${stats?.activeUsers || 0}`}
+          value={stats?.users?.total || 0}
+          subtitle={`Идэвхтэй: ${stats?.users?.active || 0}`}
           color="bg-blue-500"
           link="/users"
         />
-        
         <StatCard
           icon={FiFileText}
           title="KYC хүсэлт"
-          value={stats?.pendingKYC || 0}
+          value={stats?.kyc?.pending || 0}
           subtitle="Хүлээгдэж буй"
           color="bg-yellow-500"
           link="/kyc"
         />
-        
         <StatCard
           icon={FiDollarSign}
           title="Зээлийн хүсэлт"
-          value={stats?.pendingLoans || 0}
+          value={stats?.loans?.pending || 0}
           subtitle="Шинэ хүсэлт"
           color="bg-green-500"
           link="/loans"
         />
-        
         <StatCard
           icon={FiTrendingUp}
           title="Идэвхтэй зээл"
-          value={stats?.activeLoans || 0}
-          subtitle={`${formatMoney(stats?.totalLoanAmount || 0)}₮`}
+          value={stats?.loans?.active || 0}
+          subtitle={`${formatMoney(stats?.loanAmounts?.totalOutstanding || 0)}₮`}
           color="bg-purple-500"
           link="/loans?status=active"
         />
+        <StatCard
+          icon={FiCreditCard}
+          title="Мөнгө авалт"
+          value={stats?.withdrawals?.pending || 0}
+          subtitle="Хүлээгдэж буй"
+          color="bg-orange-500"
+          link="/withdrawals"
+        />
+        <StatCard
+          icon={FiAlertCircle}
+          title="Хугацаа хэтэрсэн"
+          value={stats?.loans?.overdue || 0}
+          subtitle="Зээл"
+          color="bg-red-500"
+          link="/loans?status=overdue"
+        />
       </div>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Сүүлийн KYC хүсэлтүүд">
-          <div className="space-y-3">
-            {stats?.recentKYC?.length > 0 ? (
-              stats.recentKYC.map((kyc) => (
-                <Link
-                  key={kyc.user_id}
-                  to={`/kyc/${kyc.user_id}`}
-                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">{kyc.phone}</p>
-                    <p className="text-sm text-gray-500">{kyc.email}</p>
-                  </div>
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                    Хүлээгдэж байна
-                  </span>
-                </Link>
-              ))
-            ) : (
-              <p className="text-center text-gray-500 py-8">Хүсэлт байхгүй</p>
-            )}
-          </div>
-        </Card>
-
-        <Card title="Сүүлийн зээлийн хүсэлтүүд">
-          <div className="space-y-3">
-            {stats?.recentLoans?.length > 0 ? (
-              stats.recentLoans.map((loan) => (
-                <Link
-                  key={loan.loan_id}
-                  to={`/loans/${loan.loan_id}`}
-                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">{loan.phone}</p>
-                    <p className="text-sm text-gray-500">{formatMoney(loan.amount)}₮</p>
-                  </div>
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                    Шинэ
-                  </span>
-                </Link>
-              ))
-            ) : (
-              <p className="text-center text-gray-500 py-8">Хүсэлт байхгүй</p>
-            )}
-          </div>
-        </Card>
+      {/* Money Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <p className="text-sm text-gray-600 mb-1">Нийт олгосон зээл</p>
+          <h3 className="text-2xl font-bold text-gray-900">{formatMoney(stats?.loanAmounts?.totalDisbursed || 0)}₮</h3>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <p className="text-sm text-gray-600 mb-1">Үлдэгдэл төлбөр</p>
+          <h3 className="text-2xl font-bold text-orange-600">{formatMoney(stats?.loanAmounts?.totalOutstanding || 0)}₮</h3>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <p className="text-sm text-gray-600 mb-1">Хэтэвчний нийт үлдэгдэл</p>
+          <h3 className="text-2xl font-bold text-green-600">{formatMoney(stats?.wallet?.totalBalance || 0)}₮</h3>
+        </div>
       </div>
+
+      {/* Today Stats */}
+      <Card title="Өнөөдрийн мэдээлэл">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <p className="text-2xl font-bold text-blue-600">{stats?.today?.newUsers || 0}</p>
+            <p className="text-sm text-gray-600 mt-1">Шинэ хэрэглэгч</p>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-lg">
+            <p className="text-2xl font-bold text-green-600">{stats?.today?.transactions || 0}</p>
+            <p className="text-sm text-gray-600 mt-1">Гүйлгээ</p>
+          </div>
+          <div className="text-center p-4 bg-yellow-50 rounded-lg">
+            <p className="text-2xl font-bold text-yellow-600">{stats?.kyc?.pending || 0}</p>
+            <p className="text-sm text-gray-600 mt-1">KYC хүлээгдэж буй</p>
+          </div>
+          <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <p className="text-2xl font-bold text-purple-600">{stats?.loans?.completed || 0}</p>
+            <p className="text-sm text-gray-600 mt-1">Дууссан зээл</p>
+          </div>
+        </div>
+      </Card>
     </div>
   )
 }
