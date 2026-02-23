@@ -9,7 +9,8 @@ import DashboardPage from './pages/dashboard/DashboardPage'
 import KYCListPage from './pages/kyc/KYCListPage'
 import KYCDetailPage from './pages/kyc/KYCDetailPage'
 import LoanListPage from './pages/loans/LoanListPage'
-import LoanDetailPage from './pages/loans/LoanDetailPage'
+import LoanReviewPage from './pages/loans/LoanReviewPage'   // ← pending зээл шалгах
+import LoanDetailPage from './pages/loans/LoanDetailPage'   // ← active/completed/... харах
 import WithdrawalListPage from './pages/withdrawals/WithdrawalListPage'
 import UserListPage from './pages/users/UserListPage'
 import UserDetailPage from './pages/users/UserDetailPage'
@@ -22,25 +23,26 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Routes */}
+          {/* Public */}
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected Routes */}
+          {/* Protected */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            
+
             {/* KYC */}
             <Route path="/kyc" element={<KYCListPage />} />
             <Route path="/kyc/:userId" element={<KYCDetailPage />} />
-            
-            {/* Loans */}
+
+            {/* Loans — 2 тусдаа page */}
             <Route path="/loans" element={<LoanListPage />} />
-            <Route path="/loans/:loanId" element={<LoanDetailPage />} />
-            
+            <Route path="/loans/review/:loanId" element={<LoanReviewPage />} />  {/* pending */}
+            <Route path="/loans/:loanId" element={<LoanDetailPage />} />          {/* бусад */}
+
             {/* Withdrawals */}
             <Route path="/withdrawals" element={<WithdrawalListPage />} />
-            
+
             {/* Users */}
             <Route path="/users" element={<UserListPage />} />
             <Route path="/users/:userId" element={<UserDetailPage />} />
