@@ -9,11 +9,13 @@ import DashboardPage from './pages/dashboard/DashboardPage'
 import KYCListPage from './pages/kyc/KYCListPage'
 import KYCDetailPage from './pages/kyc/KYCDetailPage'
 import LoanListPage from './pages/loans/LoanListPage'
-import LoanReviewPage from './pages/loans/LoanReviewPage'   // ← pending зээл шалгах
-import LoanDetailPage from './pages/loans/LoanDetailPage'   // ← active/completed/... харах
+import LoanReviewPage from './pages/loans/LoanReviewPage'
+import LoanDetailPage from './pages/loans/LoanDetailPage'
 import WithdrawalListPage from './pages/withdrawals/WithdrawalListPage'
 import UserListPage from './pages/users/UserListPage'
 import UserDetailPage from './pages/users/UserDetailPage'
+import CreditCheckListPage from './pages/creditCheck/CreditCheckListPage'
+import CreditCheckDetailPage from './pages/creditCheck/CreditCheckDetailPage'
 
 // Layout
 import Layout from './components/layout/Layout'
@@ -35,10 +37,14 @@ function App() {
             <Route path="/kyc" element={<KYCListPage />} />
             <Route path="/kyc/:userId" element={<KYCDetailPage />} />
 
-            {/* Loans — 2 тусдаа page */}
+            {/* Credit Check - Зээлийн эрх тогтоох */}
+            <Route path="/credit-check" element={<CreditCheckListPage />} />
+            <Route path="/credit-check/:userId" element={<CreditCheckDetailPage />} />
+
+            {/* Loans */}
             <Route path="/loans" element={<LoanListPage />} />
-            <Route path="/loans/review/:loanId" element={<LoanReviewPage />} />  {/* pending */}
-            <Route path="/loans/:loanId" element={<LoanDetailPage />} />          {/* бусад */}
+            <Route path="/loans/review/:loanId" element={<LoanReviewPage />} />
+            <Route path="/loans/:loanId" element={<LoanDetailPage />} />
 
             {/* Withdrawals */}
             <Route path="/withdrawals" element={<WithdrawalListPage />} />

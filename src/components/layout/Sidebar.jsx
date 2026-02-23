@@ -5,7 +5,8 @@ import {
   FiFileText, 
   FiDollarSign,
   FiCreditCard,
-  FiLogOut
+  FiLogOut,
+  FiShield
 } from 'react-icons/fi'
 import { useAuth } from '../../context/AuthContext'
 
@@ -15,6 +16,7 @@ const Sidebar = () => {
   const menuItems = [
     { path: '/dashboard', icon: FiHome, label: 'Dashboard' },
     { path: '/kyc', icon: FiFileText, label: 'KYC Баталгаажуулалт' },
+    { path: '/credit-check', icon: FiShield, label: 'Зээлийн эрх тогтоох', badge: '₮' },
     { path: '/loans', icon: FiDollarSign, label: 'Зээлийн хүсэлт' },
     { path: '/withdrawals', icon: FiCreditCard, label: 'Мөнгө авалт' },
     { path: '/users', icon: FiUsers, label: 'Хэрэглэгчид' },
@@ -34,7 +36,7 @@ const Sidebar = () => {
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors group ${
                 isActive
                   ? 'bg-primary-600 text-white'
                   : 'text-gray-300 hover:bg-dark-800'
@@ -42,7 +44,12 @@ const Sidebar = () => {
             }
           >
             <item.icon className="w-5 h-5" />
-            <span className="font-medium">{item.label}</span>
+            <span className="font-medium flex-1">{item.label}</span>
+            {item.badge && (
+              <span className="text-xs font-bold bg-yellow-500 text-dark-900 px-1.5 py-0.5 rounded">
+                {item.badge}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
