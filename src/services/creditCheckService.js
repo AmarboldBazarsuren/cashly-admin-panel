@@ -1,13 +1,9 @@
 import api from './api'
 
-/**
- * 3000₮ төлсөн хэрэглэгчдийг татах
- */
 export const getUsersPaidCreditCheck = async (page = 1, creditLimitSet = '') => {
   try {
     const params = { page }
-    if (creditLimitSet) params.creditLimitSet = creditLimitSet
-
+    if (creditLimitSet !== '') params.creditLimitSet = creditLimitSet
     const response = await api.get('/admin/users-paid-credit-check', { params })
     return response
   } catch (error) {
@@ -15,9 +11,6 @@ export const getUsersPaidCreditCheck = async (page = 1, creditLimitSet = '') => 
   }
 }
 
-/**
- * Хэрэглэгчийн дэлгэрэнгүй мэдээлэл (KYC detail ашиглана)
- */
 export const getCreditCheckDetail = async (userId) => {
   try {
     const response = await api.get(`/admin/kyc-detail/${userId}`)
@@ -28,13 +21,22 @@ export const getCreditCheckDetail = async (userId) => {
 }
 
 /**
- * Зээлийн эрх тогтоох
+ * Зээлийн эрх + кредит оноо + гадны зээлийн тоо тогтоох
+ * Backend: POST /api/admin/set-credit-limit/:userId
+ * Body: { creditLimit, creditScore, externalActiveLoansCount, notes }
  */
-export const setCreditLimit = async (userId, creditLimit) => {
+export const setCreditLimit = async (userId, creditLimit, creditScore, externalActiveLoansCount, notes) => {
   try {
-    const response = await api.post(`/admin/set-credit-limit/${userId}`, {
-      creditLimit: Number(creditLimit)
-    })
+    const body = { creditLimit: Number(creditLimit) }
+    if (creditScore !== undefined && creditScore !== null && !isNaN(creditScore)) {
+      body.creditScore = Number(creditScore)
+    }
+    if (externalActiveLoansCount !== undefined && externalActiveLoansCount !== null && !isNaN(externalActiveLoansCount)) {
+      body.externalActiveLoansCount = Number(externalActiveLoansCount)
+    }
+    if (notes) body.notes = notes
+
+    const response = await api.post(`/admin/set-credit-limit/${userId}`, body)
     return response
   } catch (error) {
     throw error

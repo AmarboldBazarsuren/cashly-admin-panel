@@ -26,22 +26,61 @@ const LoanListPage = () => {
     setLoading(true)
     try {
       let response
+      // active, extended, overdue -> getActiveLoans
       if (filter === 'active' || filter === 'overdue') {
         response = await getActiveLoans(page)
-      } else {
-        response = await getPendingLoans(page, filter)
-      }
-
-      if (response.success) {
-        // Backend: response.data = { loans: [...] }
-        let loans = response.data?.loans || []
-        // Filter overdue locally if needed
-        if (filter === 'overdue') {
-          loans = loans.filter(l => l.status === 'overdue')
+        if (response.success) {
+          let loans = response.data?.loans || []
+          if (filter === 'overdue') {
+            loans = loans.filter(l => l.status === 'overdue')
+          } else {
+            // active = active + extended (not overdue)
+            loans = loans.filter(l => ['active', 'extended'].includes(l.status))
+          }
+          setLoanList(loans)
+          setTotalPages(response.pages || 1)
+          setTotal(loans.length)
         }
-        setLoanList(loans)
-        setTotalPages(response.pages || 1)
-        setTotal(response.total || 0)
+      } else if (filter === 'completed') {
+        // completed -> pending-loans?status=all then filter
+        response = await getPendingLoans(page, 'all')
+        if (response.success) {
+          const loans = (response.data?.loans || []).filter(l => l.status === 'completed')
+          setLoanList(loans)
+          setTotalPages(response.pages || 1)
+          setTotal(loans.length)
+        }
+      } else if (filter === 'rejected') {
+        response = await getPendingLoans(page, 'all')
+        if (response.success) {
+          const loans = (response.data?.loans || []).filter(l => l.status === 'rejected')
+          setLoanList(loans)
+          setTotalPages(response.pages || 1)
+          setTotal(loans.length)
+        }
+      } else if (filter === 'all') {
+        // all statuses
+        const [pendingRes, activeRes] = await Promise.all([
+          getPendingLoans(page, 'all'),
+          getActiveLoans(page)
+        ])
+        const pending = pendingRes.success ? (pendingRes.data?.loans || []) : []
+        const active = activeRes.success ? (activeRes.data?.loans || []) : []
+        // merge unique by _id
+        const map = {}
+        ;[...pending, ...active].forEach(l => { map[l._id] = l })
+        const merged = Object.values(map).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        setLoanList(merged)
+        setTotalPages(1)
+        setTotal(merged.length)
+      } else {
+        // pending
+        response = await getPendingLoans(page, filter)
+        if (response.success) {
+          setLoanList(response.data?.loans || [])
+          setTotalPages(response.pages || 1)
+          setTotal(response.total || 0)
+        }
       }
     } catch (error) {
       toast.error('Зээлийн жагсаалт татахад алдаа гарлаа')
@@ -65,7 +104,6 @@ const LoanListPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Зээлийн хүсэлтүүд</h1>
@@ -76,7 +114,6 @@ const LoanListPage = () => {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <FilterButton status="pending" label="⏳ Хүлээгдэж байна" />
         <FilterButton status="active" label="✅ Идэвхтэй" />
@@ -86,7 +123,6 @@ const LoanListPage = () => {
         <FilterButton status="all" label="📋 Бүгд" />
       </div>
 
-      {/* Table Card */}
       <Card>
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -114,40 +150,31 @@ const LoanListPage = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loanList.map((loan) => (
-                    // Backend: loan._id, loan.loanNumber, loan.user (populated), loan.principal, loan.term, loan.interestRate, loan.status, loan.createdAt
                     <tr key={loan._id} className="hover:bg-gray-50">
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="text-xs font-mono text-gray-600">{loan.loanNumber}</div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {loan.user?.phoneNumber || '-'}
-                        </div>
+                        <div className="text-sm font-medium text-gray-900">{loan.user?.phoneNumber || '-'}</div>
                         <div className="text-xs text-gray-500">{loan.user?.name || '-'}</div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="text-sm font-bold text-gray-900">{formatMoney(loan.principal)}₮</div>
                         <div className="text-xs text-gray-500">Нийт: {formatMoney(loan.totalAmount)}₮</div>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {loan.term} хоног
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {loan.interestRate}%
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDateTime(loan.createdAt)}
-                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{loan.term} хоног</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{loan.interestRate}%</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{formatDateTime(loan.createdAt)}</td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(loan.status)}`}>
                           {getStatusText(loan.status)}
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <Link to={`/loans/${loan._id}`}>
+                        <Link to={loan.status === 'pending' ? `/loans/review/${loan._id}` : `/loans/${loan._id}`}>
                           <Button size="sm" variant="outline">
                             <FiEye className="mr-1" />
-                            Дэлгэрэнгүй
+                            {loan.status === 'pending' ? 'Шалгах' : 'Харах'}
                           </Button>
                         </Link>
                       </td>
@@ -157,25 +184,14 @@ const LoanListPage = () => {
               </table>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200">
                 <p className="text-sm text-gray-600">Хуудас {page} / {totalPages}</p>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
-                  >
-                    Өмнөх
-                  </button>
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
-                  >
-                    Дараах
-                  </button>
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                    className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50">Өмнөх</button>
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                    className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50">Дараах</button>
                 </div>
               </div>
             )}

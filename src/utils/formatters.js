@@ -43,7 +43,7 @@ export const getStatusText = (status) => {
     approved: 'Зөвшөөрөгдсөн',
     rejected: 'Татгалзсан',
     active: 'Идэвхтэй',
-    completed: 'Дууссан',
+    completed: 'Илгээсэн',
     overdue: 'Хугацаа хэтэрсэн',
     not_submitted: 'Илгээгээгүй',
   }
